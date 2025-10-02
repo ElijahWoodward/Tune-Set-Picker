@@ -3,128 +3,514 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bagpipe MSR Picker</title>
+  <title>Bagpipe Set Picker (MSR + Medley)</title>
   <style>
-    body { font-family: sans-serif; background:#0b0c10; color:#e8f0f2; margin:0; padding:20px; }
-    h1 { color:#7dd3fc; }
-    .card { background:#111317; border-radius:12px; padding:16px; margin-bottom:20px; }
-    label { display:block; margin-top:10px; }
-    select, button { margin-top:5px; padding:6px 10px; border-radius:6px; border:1px solid #444; background:#0f1217; color:#e8f0f2; }
-    .msr-line { margin:8px 0; }
-    .muted { color:#98a2b3; }
+    :root { --bg:#0b0c10; --panel:#111317; --ink:#e8f0f2; --muted:#98a2b3; --accent:#7dd3fc; }
+    html,body { height:100%; margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; color:var(--ink); background: radial-gradient(1200px 600px at 70% -10%, #0f172a 0%, #0b0c10 50%, #0b0c10 100%); }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom: 18px; }
+    h1 { font-size: clamp(22px, 2.4vw, 34px); margin: 0; letter-spacing: .5px; }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+    .grid { display:grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 900px){ .grid { grid-template-columns: 1.1fr .9fr; } }
+
+    label { font-size: 14px; color: var(--muted); display:block; margin-bottom:6px }
+    select, button, input[type="checkbox"] { font: inherit; }
+    select, .btn { background:#0f1217; color:var(--ink); border:1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 10px 12px; }
+    .row { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .btn { cursor:pointer; transition: transform .06s ease, background .2s ease; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn.primary { border-color: rgba(125,211,252,.6); box-shadow: inset 0 0 0 1px rgba(125,211,252,.4); }
+    .kpi { display:flex; gap:20px; flex-wrap:wrap; }
+    .pill { font-size:12px; color:#cbd5e1; border:1px solid rgba(255,255,255,.12); padding:6px 10px; border-radius:999px; }
+    .msr { display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center; }
+    .msr-line { display:grid; grid-template-columns: 110px 1fr auto; gap:10px; align-items:center; padding:8px 10px; border-radius:10px; background: rgba(255,255,255,.03); }
+    .msr-label { font-weight:700; color:#bae6fd; }
+    .muted { color: var(--muted); }
+    .tiny { font-size: 12px; color: var(--muted); }
+    .tag { font-size:11px; padding:3px 7px; border-radius: 999px; border:1px solid rgba(255,255,255,.14); color:#d1d5db }
+    .section-title { font-size: 16px; text-transform: uppercase; letter-spacing: .12em; color:#cbd5e1; margin: 12px 0 6px; }
+    .hr { height:1px; background: linear-gradient(90deg,transparent, rgba(255,255,255,.1), transparent); margin: 12px 0; }
+    .stack { display:flex; gap:10px; flex-wrap:wrap; }
+    .lock { cursor:pointer; opacity: .9 }
+    .lock[aria-pressed="true"] { filter: drop-shadow(0 0 6px rgba(125,211,252,.5)); }
+    .footer { margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+    code { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius:6px }
+    .medley-line { display:grid; grid-template-columns: 130px 1fr; gap:10px; align-items:center; padding:6px 10px; border-radius:10px; background: rgba(255,255,255,.03); }
   </style>
 </head>
 <body>
-  <h1>🎛️ Bagpipe MSR Picker</h1>
+  <div class="container">
+    <header>
+      <h1>🎛️ Bagpipe Set Picker</h1>
+      <div class="kpi">
+        <span class="pill" id="stats-tunes">— tunes</span>
+        <span class="pill" id="stats-popular">— popular pairings</span>
+      </div>
+    </header>
 
-  <div class="card">
-    <label>Are you a soloist or band?</label>
-    <select id="role">
-      <option value="band">Band</option>
-      <option value="solo">Soloist</option>
-    </select>
+    <div class="grid">
+      <!-- Left: Questionnaire + Output -->
+      <section class="card">
+        <div class="row">
+          <div>
+            <label>Are you a <strong>soloist</strong> or a <strong>band</strong>?</label>
+            <select id="role">
+              <option value="band">Band</option>
+              <option value="solo">Soloist</option>
+            </select>
+          </div>
+          <div>
+            <label>What grade?</label>
+            <select id="grade">
+              <option value="G1">Grade 1</option>
+              <option value="G2">Grade 2</option>
+              <option value="G3">Grade 3</option>
+              <option value="G4">Grade 4</option>
+              <option value="Open">Open/Professional</option>
+            </select>
+          </div>
+          <div id="setTypeBlock" style="display:none">
+            <label>Set type (band only)</label>
+            <select id="setType">
+              <option value="MSR">MSR</option>
+              <option value="Medley">Medley</option>
+            </select>
+          </div>
+        </div>
 
-    <label>What grade?</label>
-    <select id="grade">
-      <option value="G1">Grade 1</option>
-      <option value="G2">Grade 2</option>
-      <option value="G3">Grade 3</option>
-      <option value="G4">Grade 4</option>
-      <option value="Open">Open/Professional</option>
-    </select>
+        <div class="hr"></div>
 
-    <button id="generate">Generate MSR</button>
-  </div>
+        <div class="controls">
+          <button class="btn primary" id="generate">Generate Set</button>
+          <button class="btn" id="reroll-march">Re-roll March</button>
+          <button class="btn" id="reroll-strath">Re-roll Strathspey</button>
+          <button class="btn" id="reroll-reel">Re-roll Reel</button>
+          <button class="btn" id="reroll-medley">Re-roll Medley</button>
+          <button class="btn" id="copy">Copy to clipboard</button>
+          <span class="tiny">Tip: lock a tune you like and re-roll the others (MSR). Medley rerolls the whole sequence.</span>
+        </div>
 
-  <div class="card">
-    <h3>Generated MSR</h3>
-    <div class="msr-line">March: <span id="marchOut" class="muted">—</span></div>
-    <div class="msr-line">Strathspey: <span id="strathOut" class="muted">—</span></div>
-    <div class="msr-line">Reel: <span id="reelOut" class="muted">—</span></div>
+        <div class="hr"></div>
+
+        <!-- MSR Output -->
+        <div class="msr" id="msrBlock">
+          <div>
+            <div class="msr-line"><div class="msr-label">March</div><div id="marchOut" class="muted">—</div><button class="lock tag" id="lock-march" aria-pressed="false">🔒 lock</button></div>
+            <div class="msr-line"><div class="msr-label">Strathspey</div><div id="strathOut" class="muted">—</div><button class="lock tag" id="lock-strath" aria-pressed="false">🔒 lock</button></div>
+            <div class="msr-line"><div class="msr-label">Reel</div><div id="reelOut" class="muted">—</div><button class="lock tag" id="lock-reel" aria-pressed="false">🔒 lock</button></div>
+          </div>
+          <div class="stack" style="justify-self:end; align-self:flex-start;">
+            <span class="tag" id="roleTag">—</span>
+            <span class="tag" id="gradeTag">—</span>
+            <span class="tag" id="difficultyTag">—</span>
+          </div>
+        </div>
+
+        <!-- Medley Output -->
+        <div id="medleyBlock" style="display:none; margin-top:10px">
+          <div class="section-title">Medley</div>
+          <div class="tiny" id="medleyFormatTag">Format: —</div>
+          <div class="hr" style="margin:8px 0"></div>
+          <div id="medleyLines"></div>
+        </div>
+
+        <div class="hr"></div>
+        <div class="tiny">
+          Difficulty policy: we filter the library so lower grades don’t get advanced-only material (e.g., <em>Susan MacLeod</em> won’t be suggested to Grade 4).
+          Medley formats are weighted by grade (G3 simpler; G1/Open more adventurous).
+        </div>
+      </section>
+
+      <!-- Right: Library / Explanations -->
+      <aside class="card">
+        <div class="section-title">Library (curated 2019–2025)</div>
+        <div class="tiny">Sourced from common contest repertoires. Difficulty tags reflect typical contest practice; adjust to taste.</div>
+        <div class="hr"></div>
+        <div id="library"></div>
+      </aside>
+    </div>
+
+    <div class="footer tiny">
+      <div>Export to GitHub Pages: add this file to a repo and enable <strong>Pages</strong> → Deploy from branch. 100% client-side.</div>
+      <div>Built for Eli’s MSR/Medley projects • v2.0</div>
+    </div>
   </div>
 
 <script>
+  // --- Tune database -------------------------------------------
+  // difficulty: 'G4' < 'G3' < 'G2' < 'G1' < 'Open'
+  // popularity: rough weight (1–5) from observed top usage; higher = more common
   const LIB = {
     marches: [
-      { name: "Mrs. Duncan MacFadyen", diff:"G1" },
-      { name: "Brigadier-General Ronald Cheape of Tiroran", diff:"G1" },
-      { name: "Hugh Kennedy, BSc", diff:"G1" },
-      { name: "John MacFadyen of Melfort", diff:"G1" },
-      { name: "The Crags of Stirling", diff:"G1" },
-      { name: "Angus Campbell’s Farewell to Stirling", diff:"G1" },
-      { name: "Arthur Bignold of Lochrosque", diff:"G1" },
-      { name: "David Ross of Rosehall", diff:"G1" },
-      { name: "Abercairney Highlanders", diff:"G1" },
-      { name: "Lord Alexander Kennedy", diff:"G1" },
-      { name: "Bonnie Ann", diff:"G1" },
-      { name: "Braes of Castle Grant", diff:"G1" },
-      { name: "Inverlochy Castle", diff:"G1" },
-      { name: "Teribus", diff:"G4" },
-      { name: "The 79th’s Farewell to Gibraltar", diff:"G4" },
-      { name: "The 25th KOSB’s Farewell to Meerut", diff:"G3" }
+      { name: "Mrs. Duncan MacFadyen", diff:"G1", pop:5 },
+      { name: "Brigadier-General Ronald Cheape of Tiroran", diff:"G1", pop:4 },
+      { name: "Hugh Kennedy, BSc", diff:"G1", pop:4 },
+      { name: "John MacFadyen of Melfort", diff:"G1", pop:3 },
+      { name: "The Crags of Stirling", diff:"G1", pop:4 },
+      { name: "Angus Campbell’s Farewell to Stirling", diff:"G1", pop:4 },
+      { name: "Arthur Bignold of Lochrosque", diff:"G1", pop:3 },
+      { name: "David Ross of Rosehall", diff:"G1", pop:4 },
+      { name: "Abercairney Highlanders", diff:"G1", pop:3 },
+      { name: "Lord Alexander Kennedy", diff:"G1", pop:3 },
+      { name: "Bonnie Ann", diff:"G1", pop:2 },
+      { name: "Braes of Castle Grant", diff:"G1", pop:2 },
+      { name: "Inverlochy Castle", diff:"G1", pop:2 },
+      // approachable options
+      { name: "Teribus", diff:"G4", pop:3 },
+      { name: "The 79th’s Farewell to Gibraltar", diff:"G4", pop:3 },
+      { name: "The 25th KOSB’s Farewell to Meerut", diff:"G3", pop:2 },
+      { name: "Captain Colin Campbell", diff:"G3", pop:2 }
     ],
     strathspeys: [
-      { name: "Susan MacLeod", diff:"G1" },
-      { name: "The Ewe wi’ the Crookit Horn", diff:"G1" },
-      { name: "The Shepherd’s Crook", diff:"G1" },
-      { name: "Catlodge", diff:"G1" },
-      { name: "John Roy Stewart", diff:"G1" },
-      { name: "Bob of Fettercairn", diff:"G1" },
-      { name: "Lady Loudoun", diff:"G1" },
-      { name: "Cabar Feidh", diff:"G1" },
-      { name: "Tulloch Gorm", diff:"G1" },
-      { name: "Piper’s Bonnet", diff:"G1" },
-      { name: "Inveraray Castle", diff:"G1" },
-      { name: "Lady MacKenzie of Gairloch", diff:"G1" },
-      { name: "Maggie Cameron", diff:"G4" },
-      { name: "Atholl Cummers", diff:"G4" },
-      { name: "Miss Girdle", diff:"G3" },
-      { name: "Captain Colin Campbell", diff:"G3" }
+      { name: "Susan MacLeod", diff:"G1", pop:5 },
+      { name: "The Ewe wi’ the Crookit Horn", diff:"G1", pop:5 },
+      { name: "The Shepherd’s Crook", diff:"G1", pop:4 },
+      { name: "Catlodge", diff:"G1", pop:4 },
+      { name: "John Roy Stewart", diff:"G1", pop:3 },
+      { name: "Bob of Fettercairn", diff:"G1", pop:3 },
+      { name: "Lady Loudoun", diff:"G1", pop:3 },
+      { name: "Cabar Feidh", diff:"G1", pop:2 },
+      { name: "Tulloch Gorm", diff:"G1", pop:2 },
+      { name: "Piper’s Bonnet", diff:"G1", pop:3 },
+      { name: "Inveraray Castle", diff:"G1", pop:4 },
+      { name: "Lady MacKenzie of Gairloch", diff:"G1", pop:3 },
+      // approachable
+      { name: "Maggie Cameron", diff:"G4", pop:3 },
+      { name: "Miss Girdle", diff:"G3", pop:2 },
+      { name: "Atholl Cummers", diff:"G4", pop:2 }
     ],
     reels: [
-      { name: "Roddy MacDonald’s Fancy", diff:"G1" },
-      { name: "Bessie McIntyre", diff:"G1" },
-      { name: "John Morrison of Assynt House", diff:"G1" },
-      { name: "Drumlithie", diff:"G1" },
-      { name: "The Grey Bob", diff:"G1" },
-      { name: "Mrs. MacPherson of Inveran", diff:"G1" },
-      { name: "The Smith of Chilliechassie", diff:"G1" },
-      { name: "Broadford Bay", diff:"G1" },
-      { name: "The Rejected Suitor", diff:"G1" },
-      { name: "Restalrig Road", diff:"G1" },
-      { name: "John MacKechnie’s Big Reel", diff:"G1" },
-      { name: "Neil Angus MacDonald", diff:"G1" },
-      { name: "The Fairy Dance", diff:"G4" },
-      { name: "The Ale is Dear", diff:"G3" }
+      { name: "Roddy MacDonald’s Fancy", diff:"G1", pop:5 },
+      { name: "Bessie McIntyre", diff:"G1", pop:4 },
+      { name: "John Morrison of Assynt House", diff:"G1", pop:4 },
+      { name: "Drumlithie", diff:"G1", pop:4 },
+      { name: "The Grey Bob", diff:"G1", pop:5 },
+      { name: "Mrs. MacPherson of Inveran", diff:"G1", pop:4 },
+      { name: "The Smith of Chilliechassie", diff:"G1", pop:3 },
+      { name: "Broadford Bay", diff:"G1", pop:3 },
+      { name: "The Rejected Suitor", diff:"G1", pop:2 },
+      { name: "Restalrig Road", diff:"G1", pop:2 },
+      { name: "John MacKechnie’s Big Reel", diff:"G1", pop:3 },
+      { name: "Neil Angus MacDonald", diff:"G1", pop:2 },
+      // approachable
+      { name: "The Fairy Dance", diff:"G4", pop:3 },
+      { name: "The Ale is Dear", diff:"G3", pop:2 }
+    ],
+    // --- Medley-specific pools added below ---
+    jigs: [
+      { name:"The Geese in the Bog", diff:"G2", pop:4 },
+      { name:"The Glasgow City Police Pipers", diff:"G1", pop:5 },
+      { name:"Banjo Breakdown", diff:"G1", pop:4 },
+      { name:"The Curlew", diff:"G1", pop:3 },
+      { name:"Paddy’s Leather Breeches", diff:"G2", pop:3 },
+      { name:"The Kesh Jig", diff:"G3", pop:3 },
+      { name:"Kenneth J. MacLeod", diff:"G2", pop:2 },
+      { name:"The Little Cascade (Jig setting)", diff:"Open", pop:2 }
+    ],
+    hornpipes: [
+      { name:"The Hammer", diff:"G1", pop:4 },
+      { name:"The Train Journey North", diff:"G1", pop:4 },
+      { name:"Duncan Johnstone", diff:"G1", pop:4 },
+      { name:"Crossing the Minch", diff:"G2", pop:3 },
+      { name:"Itchy Fingers", diff:"G2", pop:4 },
+      { name:"The Man from Skye", diff:"G3", pop:3 },
+      { name:"John MacKenzie’s Fancy", diff:"G3", pop:2 }
+    ],
+    slowAirs: [
+      { name:"Leaving Port Askaig", diff:"G2", pop:4 },
+      { name:"The Mist Covered Mountains", diff:"G4", pop:5 },
+      { name:"Loch Ruan", diff:"G3", pop:3 },
+      { name:"Dark Isle", diff:"G3", pop:3 },
+      { name:"The Atholl Highlanders Farewell to Loch Katrine (Air)", diff:"G2", pop:2 },
+      { name:"MacCrimmon’s Lament (short setting)", diff:"G1", pop:3 },
+      { name:"Lament for Red Iain (concert setting)", diff:"Open", pop:2 }
     ]
   };
 
+  // basic grade gating: which difficulty levels are allowed for a given grade
   const GRADE_ALLOW = {
-    Open: new Set(["G1","Open"]),
-    G1: new Set(["G1","Open"]),
-    G2: new Set(["G1","G2"]),
-    G3: new Set(["G3","G2"]),
-    G4: new Set(["G4","G3"])
+    Open:   new Set(["G1","Open"]),
+    G1:     new Set(["G1","Open"]),
+    G2:     new Set(["G1","G2"]),
+    G3:     new Set(["G3","G2"]),
+    G4:     new Set(["G4","G3"]) // allow solid G3 material for Grade 4 to avoid empty pools
   };
 
+  // Popular MSR pairings (bias only)
+  const PAIRS = {
+    sByM: {
+      "Mrs. Duncan MacFadyen": ["Susan MacLeod", "Inveraray Castle", "The Shepherd’s Crook"],
+      "Brigadier-General Ronald Cheape of Tiroran": ["The Ewe wi’ the Crookit Horn", "John Roy Stewart"],
+      "David Ross of Rosehall": ["Lady Loudoun", "Catlodge"],
+      "The Crags of Stirling": ["Susan MacLeod", "Inveraray Castle"],
+      "Angus Campbell’s Farewell to Stirling": ["Catlodge", "The Shepherd’s Crook"],
+      "Teribus": ["Maggie Cameron", "Atholl Cummers"],
+      "The 79th’s Farewell to Gibraltar": ["Maggie Cameron", "Atholl Cummers"]
+    },
+    rByS: {
+      "Susan MacLeod": ["Roddy MacDonald’s Fancy", "John MacKechnie’s Big Reel", "Bessie McIntyre"],
+      "The Ewe wi’ the Crookit Horn": ["The Grey Bob", "Mrs. MacPherson of Inveran"],
+      "Catlodge": ["Drumlithie", "The Grey Bob"],
+      "Inveraray Castle": ["Bessie McIntyre", "The Grey Bob"],
+      "Maggie Cameron": ["The Fairy Dance", "The Ale is Dear"],
+      "Atholl Cummers": ["The Ale is Dear", "The Fairy Dance"]
+    }
+  };
+
+  // --- Medley formats (weighted by grade) -----------------------
+  // Each is a sequence of tune "types" that maps to LIB keys via TYPE_MAP.
+  const TYPE_MAP = {
+    "March":"marches",
+    "Jig":"jigs",
+    "Slow Air":"slowAirs",
+    "Strathspey":"strathspeys",
+    "Hornpipe":"hornpipes",
+    "Reel":"reels"
+  };
+
+  const MEDLEY_FORMATS = {
+    G4: [
+      { name:"March → Slow Air → Jig → Reel", seq:["March","Slow Air","Jig","Reel"], weight:4 },
+      { name:"Slow Air → Jig → Reel", seq:["Slow Air","Jig","Reel"], weight:3 },
+      { name:"March → Jig → Reel", seq:["March","Jig","Reel"], weight:3 }
+    ],
+    G3: [
+      { name:"March → Slow Air → Strathspey → Reel", seq:["March","Slow Air","Strathspey","Reel"], weight:4 },
+      { name:"Slow Air → Jig → Hornpipe → Reel", seq:["Slow Air","Jig","Hornpipe","Reel"], weight:3 },
+      { name:"March → Jig → Hornpipe → Reel", seq:["March","Jig","Hornpipe","Reel"], weight:3 }
+    ],
+    G2: [
+      { name:"March → Jig → Slow Air → Strathspey → Reel", seq:["March","Jig","Slow Air","Strathspey","Reel"], weight:3 },
+      { name:"Slow Air → Strathspey → Reel → Hornpipe → Jig", seq:["Slow Air","Strathspey","Reel","Hornpipe","Jig"], weight:3 },
+      { name:"Jig → Slow Air → Strathspey → Reel", seq:["Jig","Slow Air","Strathspey","Reel"], weight:3 },
+      { name:"Hornpipe → Jig → Slow Air → Reel", seq:["Hornpipe","Jig","Slow Air","Reel"], weight:2 }
+    ],
+    G1: [
+      { name:"March → Jig → Slow Air → Strathspey → Reel", seq:["March","Jig","Slow Air","Strathspey","Reel"], weight:3 },
+      { name:"Slow Air → Strathspey → Reel → Hornpipe → Jig", seq:["Slow Air","Strathspey","Reel","Hornpipe","Jig"], weight:3 },
+      { name:"Hornpipe → Jig → Slow Air → Reel → Reel", seq:["Hornpipe","Jig","Slow Air","Reel","Reel"], weight:2 },
+      { name:"Jig → Slow Air → Strathspey → Reel → Hornpipe", seq:["Jig","Slow Air","Strathspey","Reel","Hornpipe"], weight:2 }
+    ],
+    Open: [
+      { name:"Hornpipe → Jig → Slow Air → Strathspey → Reel", seq:["Hornpipe","Jig","Slow Air","Strathspey","Reel"], weight:3 },
+      { name:"Jig → Jig → Slow Air → Reel → Hornpipe", seq:["Jig","Jig","Slow Air","Reel","Hornpipe"], weight:2 },
+      { name:"Slow Air → Strathspey → Reel → Reel → Hornpipe", seq:["Slow Air","Strathspey","Reel","Reel","Hornpipe"], weight:2 }
+    ]
+  };
+
+  // --- Helpers --------------------------------------------------
+  const $ = sel => document.querySelector(sel);
+  function tag(text){ const span = document.createElement('span'); span.className='tag'; span.textContent=text; return span; }
   function choice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
   function filterByGrade(list, grade){
     const allowed = GRADE_ALLOW[grade] || new Set(["G1"]);
     return list.filter(t => allowed.has(t.diff));
   }
 
-  function generate(){
-    const role = document.getElementById('role').value;
-    const grade = document.getElementById('grade').value;
-    const m = choice(filterByGrade(LIB.marches, grade));
-    const s = choice(filterByGrade(LIB.strathspeys, grade));
-    const r = choice(filterByGrade(LIB.reels, grade));
-    document.getElementById('marchOut').textContent = m.name;
-    document.getElementById('strathOut').textContent = s.name;
-    document.getElementById('reelOut').textContent = r.name;
+  function weightedChoice(list){
+    const total = list.reduce((s,t)=> s + (t.pop||1), 0);
+    let r = Math.random()*total;
+    for(const t of list){ r -= (t.pop||1); if(r <= 0) return t; }
+    return list[0];
   }
 
-  document.getElementById('generate').addEventListener('click', generate);
+  function weightedChoiceObj(options, weightKey="weight"){
+    const total = options.reduce((s,o)=> s + (o[weightKey]||1), 0);
+    let r = Math.random()*total;
+    for(const o of options){ r -= (o[weightKey]||1); if(r <= 0) return o; }
+    return options[0];
+  }
+
+  function uniquePick(pool, used){
+    // pick a tune not already used (by name)
+    const candidates = pool.filter(t => !used.has(t.name));
+    return candidates.length ? weightedChoice(candidates) : weightedChoice(pool);
+  }
+
+  // --- MSR generation ------------------------------------------
+  let locked = { march:null, strath:null, reel:null };
+
+  function generateMSR(role, grade){
+    const marches = filterByGrade(LIB.marches, grade);
+    const straths  = filterByGrade(LIB.strathspeys, grade);
+    const reels   = filterByGrade(LIB.reels, grade);
+
+    let march = locked.march || weightedChoice(marches);
+    let strathCandidates = (PAIRS.sByM[march.name]||[]).map(n => straths.find(x=>x.name===n)).filter(Boolean);
+    if(!strathCandidates.length) strathCandidates = straths;
+    let strath = locked.strath || weightedChoice(strathCandidates);
+
+    let reelCandidates = (PAIRS.rByS[strath.name]||[]).map(n => reels.find(x=>x.name===n)).filter(Boolean);
+    if(!reelCandidates.length) reelCandidates = reels;
+    let reel = locked.reel || weightedChoice(reelCandidates);
+
+    return { march, strath, reel };
+  }
+
+  function setMSROutput(msr, role, grade){
+    $('#marchOut').textContent = msr.march.name;
+    $('#strathOut').textContent = msr.strath.name;
+    $('#reelOut').textContent = msr.reel.name;
+    $('#roleTag').textContent = role === 'solo' ? 'Soloist' : 'Band';
+    $('#gradeTag').textContent = grade;
+    $('#difficultyTag').textContent = `mix: ${msr.march.diff}/${msr.strath.diff}/${msr.reel.diff}`;
+  }
+
+  // --- Medley generation ---------------------------------------
+  function pickMedleyFormat(grade){
+    const bank = MEDLEY_FORMATS[grade] || MEDLEY_FORMATS.G1;
+    return weightedChoiceObj(bank);
+  }
+
+  function poolForType(type, grade){
+    const key = TYPE_MAP[type];
+    const arr = LIB[key];
+    return filterByGrade(arr, grade);
+  }
+
+  function generateMedley(grade){
+    const fmt = pickMedleyFormat(grade);
+    const used = new Set();
+    const picks = [];
+
+    for(const slot of fmt.seq){
+      const pool = poolForType(slot, grade);
+      const pick = uniquePick(pool, used);
+      used.add(pick.name);
+      picks.push({ type: slot, tune: pick });
+    }
+    return { format: fmt.name, sequence: picks };
+  }
+
+  function setMedleyOutput(medley){
+    $('#medleyFormatTag').textContent = `Format: ${medley.format}`;
+    const box = $('#medleyLines'); box.innerHTML = '';
+    medley.sequence.forEach((s, i)=>{
+      const row = document.createElement('div');
+      row.className = 'medley-line';
+      row.innerHTML = `<div><strong>${s.type}</strong></div><div>${i+1}. ${s.tune.name} <span class="muted">• ${s.tune.diff}</span></div>`;
+      box.appendChild(row);
+    });
+  }
+
+  // --- Library render ------------------------------------------
+  function renderLibrary(){
+    const box = $('#library'); box.innerHTML='';
+    const makeList = (title, arr) => {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `<div class="section-title">${title}</div>`;
+      const ul = document.createElement('ul'); ul.className='tiny';
+      for(const t of arr){
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${t.name}</strong> <span class="muted">• diff ${t.diff} • pop ${t.pop}</span>`;
+        ul.appendChild(li);
+      }
+      wrap.appendChild(ul); box.appendChild(wrap);
+    };
+    makeList('Marches', LIB.marches);
+    makeList('Strathspeys', LIB.strathspeys);
+    makeList('Reels', LIB.reels);
+    makeList('Jigs (Medley)', LIB.jigs);
+    makeList('Hornpipes (Medley)', LIB.hornpipes);
+    makeList('Slow Airs (Medley)', LIB.slowAirs);
+
+    // stats
+    $('#stats-tunes').textContent =
+      `${LIB.marches.length + LIB.strathspeys.length + LIB.reels.length + LIB.jigs.length + LIB.hornpipes.length + LIB.slowAirs.length} tunes`;
+    let pairCount = 0;
+    Object.values(PAIRS.sByM).forEach(a=>pairCount+=a.length);
+    Object.values(PAIRS.rByS).forEach(a=>pairCount+=a.length);
+    $('#stats-popular').textContent = `${pairCount} popular pairings`;
+  }
+
+  // --- UI wiring ------------------------------------------------
+  function toggleLock(which){
+    const btn = which==='march' ? $('#lock-march') : which==='strath' ? $('#lock-strath') : $('#lock-reel');
+    const on = btn.getAttribute('aria-pressed')==='true';
+    btn.setAttribute('aria-pressed', (!on).toString());
+    if(!on){ // lock current
+      const txt = which==='march'? $('#marchOut').textContent : which==='strath'? $('#strathOut').textContent : $('#reelOut').textContent;
+      const pool = which==='march' ? LIB.marches : which==='strath' ? LIB.strathspeys : LIB.reels;
+      locked[which] = pool.find(t => t.name===txt) || null;
+    } else {
+      locked[which] = null;
+    }
+  }
+  $('#lock-march').addEventListener('click', ()=> toggleLock('march'));
+  $('#lock-strath').addEventListener('click', ()=> toggleLock('strath'));
+  $('#lock-reel').addEventListener('click', ()=> toggleLock('reel'));
+
+  function updateRoleUI(){
+    const role = $('#role').value;
+    const isBand = role === 'band';
+    $('#setTypeBlock').style.display = isBand ? '' : 'none';
+    // show MSR block for soloists always; medley only for band+Medley
+    const setType = isBand ? $('#setType').value : 'MSR';
+    $('#msrBlock').style.display = (setType==='MSR') ? '' : 'none';
+    $('#medleyBlock').style.display = (setType==='Medley') ? '' : 'none';
+    // buttons visibility
+    $('#reroll-march').style.display = (setType==='MSR') ? '' : 'none';
+    $('#reroll-strath').style.display = (setType==='MSR') ? '' : 'none';
+    $('#reroll-reel').style.display = (setType==='MSR') ? '' : 'none';
+    $('#reroll-medley').style.display = (setType==='Medley') ? '' : 'none';
+  }
+  $('#role').addEventListener('change', ()=>{ updateRoleUI(); runGenerate(); });
+  $('#setType').addEventListener('change', ()=>{ updateRoleUI(); runGenerate(); });
+  $('#grade').addEventListener('change', ()=> runGenerate());
+
+  function runGenerate(){
+    const role = $('#role').value;
+    const grade = $('#grade').value;
+    const setType = role==='band' ? $('#setType').value : 'MSR';
+
+    if(setType === 'Medley'){
+      const medley = generateMedley(grade);
+      setMedleyOutput(medley);
+      // stash last
+      window.__last = { role, grade, setType, medley };
+    } else {
+      const msr = generateMSR(role, grade);
+      setMSROutput(msr, role, grade);
+      window.__last = { role, grade, setType, msr };
+    }
+  }
+
+  $('#generate').addEventListener('click', runGenerate);
+  $('#reroll-march').addEventListener('click', ()=>{ locked.march=null; const cur=generateMSR($('#role').value,$('#grade').value); setMSROutput(cur,$('#role').value,$('#grade').value); window.__last.msr=cur; });
+  $('#reroll-strath').addEventListener('click', ()=>{ locked.strath=null; const cur=generateMSR($('#role').value,$('#grade').value); setMSROutput(cur,$('#role').value,$('#grade').value); window.__last.msr=cur; });
+  $('#reroll-reel').addEventListener('click', ()=>{ locked.reel=null; const cur=generateMSR($('#role').value,$('#grade').value); setMSROutput(cur,$('#role').value,$('#grade').value); window.__last.msr=cur; });
+  $('#reroll-medley').addEventListener('click', ()=>{ if($('#medleyBlock').style.display!=='none'){ runGenerate(); } });
+
+  $('#copy').addEventListener('click', ()=>{
+    const last = window.__last || {};
+    const role = last.role || $('#role').value;
+    const grade = last.grade || $('#grade').value;
+    const setType = last.setType || ($('#role').value==='band' ? $('#setType').value : 'MSR');
+
+    let text = '';
+    if(setType==='Medley' && last.medley){
+      text += `Band ${grade} Medley\nFormat: ${last.medley.format}\n`;
+      last.medley.sequence.forEach((s,i)=>{
+        text += `${i+1}. ${s.type}: ${s.tune.name}\n`;
+      });
+    } else {
+      const msr = last.msr || {march:{name:'—'}, strath:{name:'—'}, reel:{name:'—'}};
+      text += `${role==='solo'?'Soloist':'Band'} ${grade} MSR\n- March: ${msr.march.name}\n- Strathspey: ${msr.strath.name}\n- Reel: ${msr.reel.name}`;
+    }
+
+    navigator.clipboard.writeText(text).then(()=> alert('Copied to clipboard!'));
+  });
+
+  // init
+  function firstLoad(){
+    renderLibrary();
+    updateRoleUI();
+    runGenerate();
+  }
+  firstLoad();
 </script>
 </body>
 </html>
