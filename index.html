@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bagpipe MSR Picker</title>
+  <style>
+    body { font-family: sans-serif; background:#0b0c10; color:#e8f0f2; margin:0; padding:20px; }
+    h1 { color:#7dd3fc; }
+    .card { background:#111317; border-radius:12px; padding:16px; margin-bottom:20px; }
+    label { display:block; margin-top:10px; }
+    select, button { margin-top:5px; padding:6px 10px; border-radius:6px; border:1px solid #444; background:#0f1217; color:#e8f0f2; }
+    .msr-line { margin:8px 0; }
+    .muted { color:#98a2b3; }
+  </style>
+</head>
+<body>
+  <h1>🎛️ Bagpipe MSR Picker</h1>
+
+  <div class="card">
+    <label>Are you a soloist or band?</label>
+    <select id="role">
+      <option value="band">Band</option>
+      <option value="solo">Soloist</option>
+    </select>
+
+    <label>What grade?</label>
+    <select id="grade">
+      <option value="G1">Grade 1</option>
+      <option value="G2">Grade 2</option>
+      <option value="G3">Grade 3</option>
+      <option value="G4">Grade 4</option>
+      <option value="Open">Open/Professional</option>
+    </select>
+
+    <button id="generate">Generate MSR</button>
+  </div>
+
+  <div class="card">
+    <h3>Generated MSR</h3>
+    <div class="msr-line">March: <span id="marchOut" class="muted">—</span></div>
+    <div class="msr-line">Strathspey: <span id="strathOut" class="muted">—</span></div>
+    <div class="msr-line">Reel: <span id="reelOut" class="muted">—</span></div>
+  </div>
+
+<script>
+  const LIB = {
+    marches: [
+      { name: "Mrs. Duncan MacFadyen", diff:"G1" },
+      { name: "Brigadier-General Ronald Cheape of Tiroran", diff:"G1" },
+      { name: "Hugh Kennedy, BSc", diff:"G1" },
+      { name: "John MacFadyen of Melfort", diff:"G1" },
+      { name: "The Crags of Stirling", diff:"G1" },
+      { name: "Angus Campbell’s Farewell to Stirling", diff:"G1" },
+      { name: "Arthur Bignold of Lochrosque", diff:"G1" },
+      { name: "David Ross of Rosehall", diff:"G1" },
+      { name: "Abercairney Highlanders", diff:"G1" },
+      { name: "Lord Alexander Kennedy", diff:"G1" },
+      { name: "Bonnie Ann", diff:"G1" },
+      { name: "Braes of Castle Grant", diff:"G1" },
+      { name: "Inverlochy Castle", diff:"G1" },
+      { name: "Teribus", diff:"G4" },
+      { name: "The 79th’s Farewell to Gibraltar", diff:"G4" },
+      { name: "The 25th KOSB’s Farewell to Meerut", diff:"G3" }
+    ],
+    strathspeys: [
+      { name: "Susan MacLeod", diff:"G1" },
+      { name: "The Ewe wi’ the Crookit Horn", diff:"G1" },
+      { name: "The Shepherd’s Crook", diff:"G1" },
+      { name: "Catlodge", diff:"G1" },
+      { name: "John Roy Stewart", diff:"G1" },
+      { name: "Bob of Fettercairn", diff:"G1" },
+      { name: "Lady Loudoun", diff:"G1" },
+      { name: "Cabar Feidh", diff:"G1" },
+      { name: "Tulloch Gorm", diff:"G1" },
+      { name: "Piper’s Bonnet", diff:"G1" },
+      { name: "Inveraray Castle", diff:"G1" },
+      { name: "Lady MacKenzie of Gairloch", diff:"G1" },
+      { name: "Maggie Cameron", diff:"G4" },
+      { name: "Atholl Cummers", diff:"G4" },
+      { name: "Miss Girdle", diff:"G3" },
+      { name: "Captain Colin Campbell", diff:"G3" }
+    ],
+    reels: [
+      { name: "Roddy MacDonald’s Fancy", diff:"G1" },
+      { name: "Bessie McIntyre", diff:"G1" },
+      { name: "John Morrison of Assynt House", diff:"G1" },
+      { name: "Drumlithie", diff:"G1" },
+      { name: "The Grey Bob", diff:"G1" },
+      { name: "Mrs. MacPherson of Inveran", diff:"G1" },
+      { name: "The Smith of Chilliechassie", diff:"G1" },
+      { name: "Broadford Bay", diff:"G1" },
+      { name: "The Rejected Suitor", diff:"G1" },
+      { name: "Restalrig Road", diff:"G1" },
+      { name: "John MacKechnie’s Big Reel", diff:"G1" },
+      { name: "Neil Angus MacDonald", diff:"G1" },
+      { name: "The Fairy Dance", diff:"G4" },
+      { name: "The Ale is Dear", diff:"G3" }
+    ]
+  };
+
+  const GRADE_ALLOW = {
+    Open: new Set(["G1","Open"]),
+    G1: new Set(["G1","Open"]),
+    G2: new Set(["G1","G2"]),
+    G3: new Set(["G3","G2"]),
+    G4: new Set(["G4","G3"])
+  };
+
+  function choice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function filterByGrade(list, grade){
+    const allowed = GRADE_ALLOW[grade] || new Set(["G1"]);
+    return list.filter(t => allowed.has(t.diff));
+  }
+
+  function generate(){
+    const role = document.getElementById('role').value;
+    const grade = document.getElementById('grade').value;
+    const m = choice(filterByGrade(LIB.marches, grade));
+    const s = choice(filterByGrade(LIB.strathspeys, grade));
+    const r = choice(filterByGrade(LIB.reels, grade));
+    document.getElementById('marchOut').textContent = m.name;
+    document.getElementById('strathOut').textContent = s.name;
+    document.getElementById('reelOut').textContent = r.name;
+  }
+
+  document.getElementById('generate').addEventListener('click', generate);
+</script>
+</body>
+</html>
